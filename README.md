@@ -72,6 +72,7 @@ cd active-cf
 ## 📝 Quick Start & Usage Example
 
 Here is how to initialize the `VectorMapSimilarityEngine` and simulate a user adjusting their vector search radius:
+see also the `Demo-version.py` for a vivi presetation of idea! 
 ```python
 
 from recommendation_data import dataset
