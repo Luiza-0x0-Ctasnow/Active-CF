@@ -95,7 +95,7 @@ engine.set_vector_radius('Toby', 0.5)
 print(engine.most_similar_users('Toby', 3))
 
 ```
-
+Try It Free by `active_cf_interactive_demo.html` !
 ---
 
 ## 🗺️ Roadmap
