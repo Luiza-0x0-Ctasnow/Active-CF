@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active-CF — Interactive Vector Radar & Collaborative Filtering Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#151e2e',
+                            900: '#0f172a',
+                            950: '#090d16',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom sleek range slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #1e293b;
+            border-radius: 999px;
+            border: 1px solid #334155;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -7px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background: #7dd3fc;
+        }
+        .peer-slider::-webkit-slider-thumb {
+            height: 14px;
+            width: 14px;
+            margin-top: -5px;
+            background: #a78bfa;
+            box-shadow: 0 0 8px rgba(167, 139, 250, 0.5);
+        }
+        .peer-slider::-webkit-slider-thumb:hover {
+            background: #c4b5fd;
+        }
+        /* Subtle pulse animation for radar ring */
+        @keyframes radarSweep {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .radar-sweep {
+            transform-origin: center;
+            animation: radarSweep 12s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-sky-500/30 selection:text-sky-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-lg tracking-tight text-white">Active-CF</h1>
+                        <span class="px-2 py-0.5 text-[11px] font-mono font-medium rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">v2.0 Interactive Playground</span>
+                    </div>
+                    <p class="text-xs text-slate-400 hidden sm:block">Human-in-the-Loop Vector Radar & Collaborative Filtering Engine</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="hidden md:flex items-center gap-2 text-xs text-slate-400 bg-slate-800/60 px-3 py-1.5 rounded-lg border border-slate-700/60">
+                    <span>Target User:</span>
+                    <span class="font-semibold text-sky-400 flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+                        Toby
+                    </span>
+                </div>
+                <button id="resetBtn" class="px-3.5 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5 shadow-sm active:scale-95">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Reset Defaults
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left Column: Vector Radar Map & Macro Radius Control (7 cols on lg) -->
+            <div class="lg:col-span-7 flex flex-col gap-6">
+                
+                <!-- Interactive Vector Space Radar Card -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <div>
+                            <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                                <span>Vector Embedding Space Radar</span>
+                                <span id="modeBadge" class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                                    Balanced Mode (1.0x)
+                                </span>
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">Distance from center represents inverse Pearson similarity to Toby.</p>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs text-slate-400">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8]"></span>
+                                In Radar Range
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                                Filtered Out
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Responsive Canvas Container -->
+                    <div id="radarContainer" class="relative w-full aspect-square max-h-[440px] mx-auto bg-slate-950/90 rounded-xl border border-slate-800/80 overflow-hidden flex items-center justify-center">
+                        <canvas id="radarCanvas"></canvas>
+                        
+                        <!-- Overlay Telemetry Pill -->
+                        <div class="absolute bottom-3 left-3 bg-slate-900/85 backdrop-blur-sm border border-slate-800 px-3 py-1.5 rounded-lg text-[11px] font-mono text-slate-300 flex items-center gap-3">
+                            <span>Search Radius: <strong id="telemetryRadius" class="text-sky-400">1.00x</strong></span>
+                            <span class="text-slate-600">|</span>
+                            <span>Active Peers: <strong id="telemetryActiveCount" class="text-emerald-400">0 / 6</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Macro Control: Vector Search Radius Slider -->
+                    <div class="mt-5 bg-slate-850/90 border border-slate-800 rounded-xl p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <label for="radiusSlider" class="text-sm font-semibold text-white flex items-center gap-2">
+                                <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
+                                </svg>
+                                Macro Control: Vector Search Radius
+                            </label>
+                            <span id="radiusValueDisplay" class="font-mono text-sm font-bold text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-md border border-sky-500/20">1.00x</span>
+                        </div>
+
+                        <input type="range" id="radiusSlider" min="0.2" max="2.5" step="0.05" value="1.0" class="w-full my-2">
+
+                        <div class="flex justify-between text-[11px] text-slate-400 font-mono mb-4">
+                            <span>0.2x (Echo Chamber)</span>
+                            <span>1.0x (Standard)</span>
+                            <span>2.5x (Serendipity)</span>
+                        </div>
+
+                        <!-- Quick Mode Preset Buttons -->
+                        <div class="grid grid-cols-3 gap-2.5">
+                            <button type="button" data-radius="0.45" class="preset-btn py-2 px-3 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 transition flex flex-col items-center gap-0.5">
+                                <span class="text-amber-400 font-semibold">🔒 Strict Core</span>
+                                <span class="text-[10px] text-slate-400">0.45x Safe Zone</span>
+                            </button>
+                            <button type="button" data-radius="1.0" class="preset-btn py-2 px-3 rounded-lg text-xs font-medium bg-sky-500/15 border border-sky-500/40 text-sky-200 transition flex flex-col items-center gap-0.5">
+                                <span class="text-sky-400 font-semibold">⚖️ Balanced</span>
+                                <span class="text-[10px] text-sky-300/70">1.00x Default</span>
+                            </button>
+                            <button type="button" data-radius="2.1" class="preset-btn py-2 px-3 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 transition flex flex-col items-center gap-0.5">
+                                <span class="text-emerald-400 font-semibold">🧭 Explorer Mode</span>
+                                <span class="text-[10px] text-slate-400">2.10x Break Bubble</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Micro Control: Peer Taste Equalizer -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                                </svg>
+                                Micro Control: Peer Taste Equalizer
+                            </h2>
+                            <p class="text-xs text-slate-400 mt-0.5">Manually boost (up to 3.0x) or mute (0.0x) individual peer influence.</p>
+                        </div>
+                    </div>
+
+                    <div id="peerEqualizerGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                        <!-- Dynamically populated peer equalizer controls -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Live Recommendations & Math Breakdown (5 cols on lg) -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+
+                <!-- Resulting Movie Recommendations Card -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                    <div class="flex items-center justify-between mb-1">
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                            <span>🎬 Live Recommendations for Toby</span>
+                        </h2>
+                        <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                            Weighted CF
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4">Unwatched movies ranked by active peers inside the radar boundary.</p>
+
+                    <div id="recommendationsList" class="flex flex-col gap-3">
+                        <!-- Dynamically populated movie recommendations -->
+                    </div>
+                </div>
+
+                <!-- Live Ranked Peer Similarity & Formula Breakdown -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-base font-semibold text-white">📐 Live Similarity Matrix</h2>
+                        <span class="text-[11px] font-mono text-slate-400">Score = Pearson × Radius × Weight</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4">Real-time peer ranking & inclusion threshold check.</p>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-[11px] font-mono text-slate-400 uppercase">
+                                    <th class="pb-2.5 font-medium">Peer</th>
+                                    <th class="pb-2.5 font-medium text-right">Pearson</th>
+                                    <th class="pb-2.5 font-medium text-right">Weight</th>
+                                    <th class="pb-2.5 font-medium text-right">Adjusted</th>
+                                    <th class="pb-2.5 font-medium text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="similarityTableBody" class="divide-y divide-slate-800/60 text-xs">
+                                <!-- Dynamically populated rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Toby's Existing Watch History Reference -->
+                    <div class="mt-5 pt-4 border-t border-slate-800/80">
+                        <h3 class="text-xs font-semibold text-slate-300 mb-2">Toby's Rated Movies (Baseline Profile):</h3>
+                        <div id="tobyHistoryTags" class="flex flex-wrap gap-1.5">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        /**
+         * 1. DATASET (Classic Collaborative Filtering Movie Dataset + Extended Movies for Rich Exploration)
+         */
+        const dataset = {
+            'Toby': {
+                'Snakes on a Plane': 4.5,
+                'Superman Returns': 4.0,
+                'You, Me and Dupree': 1.0
+            },
+            'Lisa': {
+                'Lady in the Water': 2.5,
+                'Snakes on a Plane': 3.5,
+                'Just My Luck': 3.0,
+                'Superman Returns': 3.5,
+                'You, Me and Dupree': 2.5,
+                'The Night Listener': 3.0
+            },
+            'Gene': {
+                'Lady in the Water': 3.0,
+                'Snakes on a Plane': 3.5,
+                'Just My Luck': 1.5,
+                'Superman Returns': 5.0,
+                'The Night Listener': 3.0,
+                'You, Me and Dupree': 3.5
+            },
+            'Michael': {
+                'Lady in the Water': 2.5,
+                'Snakes on a Plane': 3.0,
+                'Superman Returns': 3.5,
+                'The Night Listener': 4.0
+            },
+            'Claudia': {
+                'Snakes on a Plane': 3.5,
+                'Just My Luck': 3.0,
+                'The Night Listener': 4.5,
+                'Superman Returns': 4.0,
+                'You, Me and Dupree': 2.5
+            },
+            'Mick': {
+                'Lady in the Water': 3.0,
+                'Snakes on a Plane': 4.0,
+                'Just My Luck': 2.0,
+                'Superman Returns': 3.0,
+                'The Night Listener': 3.0,
+                'You, Me and Dupree': 2.0
+            },
+            'Jack': {
+                'Lady in the Water': 3.0,
+                'Snakes on a Plane': 4.0,
+                'The Night Listener': 3.0,
+                'Superman Returns': 5.0,
+                'You, Me and Dupree': 3.5
+            }
+        };
+
+        // Fixed angular positions around the 2D radar map for visual clarity
+        const peerAngles = {
+            'Lisa': -Math.PI * 0.18,
+            'Mick': Math.PI * 0.22,
+            'Claudia': Math.PI * 0.58,
+            'Jack': Math.PI * 0.88,
+            'Michael': -Math.PI * 0.78,
+            'Gene': -Math.PI * 0.48
+        };
+
+        const peerColors = {
+            'Lisa': '#38bdf8',    // Sky
+            'Mick': '#34d399',    // Emerald
+            'Claudia': '#f472b6', // Pink
+            'Jack': '#fbbf24',    // Amber
+            'Michael': '#a78bfa', // Purple
+            'Gene': '#fb7185'     // Rose
+        };
+
+        // Application State
+        const state = {
+            targetUser: 'Toby',
+            radiusMultiplier: 1.0,
+            peerWeights: {
+                'Lisa': 1.0,
+                'Gene': 1.0,
+                'Mick': 1.0,
+                'Claudia': 1.0,
+                'Jack': 1.0,
+                'Michael': 1.0
+            }
+        };
+
+        /**
+         * 2. COLLABORATIVE FILTERING MATH ENGINE
+         */
+        function pearsonCorrelation(p1, p2) {
+            const items1 = dataset[p1];
+            const items2 = dataset[p2];
+            const both = Object.keys(items1).filter(item => item in items2);
+            const n = both.length;
+            if (n === 0) return 0;
+
+            let sum1 = 0, sum2 = 0, sum1Sq = 0, sum2Sq = 0, pSum = 0;
+            for (const item of both) {
+                const r1 = items1[item];
+                const r2 = items2[item];
+                sum1 += r1;
+                sum2 += r2;
+                sum1Sq += r1 * r1;
+                sum2Sq += r2 * r2;
+                pSum += r1 * r2;
+            }
+
+            const num = pSum - (sum1 * sum2 / n);
+            const den = Math.sqrt((sum1Sq - (sum1 * sum1) / n) * (sum2Sq - (sum2 * sum2) / n));
+            if (den === 0) return 0;
+            return num / den;
+        }
+
+        /**
+         * Evaluates all peers with Macro Radius & Micro Equalizer Weights
+         */
+        function evaluatePeers() {
+            const peers = Object.keys(dataset).filter(u => u !== state.targetUser);
+            const results = peers.map(peer => {
+                const basePearson = pearsonCorrelation(state.targetUser, peer);
+                const userWeight = state.peerWeights[peer] ?? 1.0;
+
+                // Distance in vector space: 0 = identical (Pearson 1.0), 1 = orthogonal (Pearson 0.0)
+                // Clamp negative correlations nicely for spatial mapping
+                const clampedPearson = Math.max(0.05, basePearson);
+                const vectorDistance = 1 - clampedPearson; // e.g. Pearson 0.99 -> dist 0.01; Pearson 0.38 -> dist 0.62
+
+                // Effective reach of the user's search radar:
+                // At 1.0x radius, threshold distance is ~0.55 (includes peers with Pearson >= 0.45)
+                // Expanding radius increases reach; shrinking tightens to only closest core peers
+                const maxReachDistance = 0.55 * state.radiusMultiplier;
+
+                // Is the peer inside the radar circle AND not manually muted?
+                const inRadar = (vectorDistance <= maxReachDistance) && (userWeight > 0);
+
+                // Final adjusted similarity weight
+                const adjustedScore = inRadar ? (basePearson * state.radiusMultiplier * userWeight) : 0;
+
+                return {
+                    peer,
+                    basePearson,
+                    vectorDistance,
+                    maxReachDistance,
+                    userWeight,
+                    inRadar,
+                    adjustedScore
+                };
+            });
+
+            // Sort by adjusted score descending, then by base Pearson descending
+            results.sort((a, b) => {
+                if (b.adjustedScore !== a.adjustedScore) return b.adjustedScore - a.adjustedScore;
+                return b.basePearson - a.basePearson;
+            });
+
+            return results;
+        }
+
+        /**
+         * Computes Weighted Collaborative Filtering Movie Recommendations
+         */
+        function computeRecommendations(evaluatedPeers) {
+            const totals = {};
+            const simSums = {};
+            const contributors = {};
+            const tobyWatched = dataset[state.targetUser];
+
+            for (const p of evaluatedPeers) {
+                if (!p.inRadar || p.adjustedScore <= 0) continue;
+
+                const peerRatings = dataset[p.peer];
+                for (const [movie, rating] of Object.entries(peerRatings)) {
+                    // Only recommend movies Toby hasn't seen yet
+                    if (!(movie in tobyWatched)) {
+                        totals[movie] = (totals[movie] || 0) + rating * p.adjustedScore;
+                        simSums[movie] = (simSums[movie] || 0) + p.adjustedScore;
+                        if (!contributors[movie]) contributors[movie] = [];
+                        contributors[movie].push({
+                            peer: p.peer,
+                            rating: rating,
+                            weight: p.adjustedScore
+                        });
+                    }
+                }
+            }
+
+            const rankings = Object.keys(totals).map(movie => {
+                // Sort contributors by highest influence
+                const sortedContrib = contributors[movie].sort((a, b) => b.weight - a.weight);
+                return {
+                    movie,
+                    predictedScore: totals[movie] / simSums[movie],
+                    contributors: sortedContrib
+                };
+            });
+
+            rankings.sort((a, b) => b.predictedScore - a.predictedScore);
+            return rankings;
+        }
+
+        /**
+         * 3. CANVAS RADAR VISUALIZATION
+         */
+        const canvas = document.getElementById('radarCanvas');
+        const ctx = canvas.getContext('2d');
+        const radarContainer = document.getElementById('radarContainer');
+
+        function resizeCanvas() {
+            const rect = radarContainer.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            drawRadar();
+        }
+
+        function drawRadar() {
+            const width = radarContainer.clientWidth;
+            const height = radarContainer.clientHeight;
+            const cx = width / 2;
+            const cy = height / 2;
+            const maxMapRadius = Math.min(width, height) * 0.42;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // 1. Draw subtle background concentric reference rings (Vector Distance Grid)
+            const gridSteps = [0.25, 0.5, 0.75, 1.0];
+            gridSteps.forEach((step, idx) => {
+                const r = maxMapRadius * step;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(51, 65, 85, 0.45)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Distance label
+                ctx.fillStyle = 'rgba(100, 116, 139, 0.65)';
+                ctx.font = '10px "JetBrains Mono", monospace';
+                ctx.fillText(`d=${step.toFixed(2)}`, cx + 4, cy - r + 11);
+            });
+
+            // Crosshair axes
+            ctx.beginPath();
+            ctx.moveTo(cx - maxMapRadius, cy);
+            ctx.lineTo(cx + maxMapRadius, cy);
+            ctx.moveTo(cx, cy - maxMapRadius);
+            ctx.lineTo(cx, cy + maxMapRadius);
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.35)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // 2. Draw Active Search Radar Boundary Circle
+            // Map maxReachDistance (0.55 * radiusMultiplier) onto canvas pixels
+            const visualRadarRadius = Math.min(maxMapRadius * 1.12, maxMapRadius * (0.55 * state.radiusMultiplier));
+
+            // Radar fill gradient
+            const grad = ctx.createRadialGradient(cx, cy, 5, cx, cy, visualRadarRadius);
+            if (state.radiusMultiplier > 1.25) {
+                // Explorer Mode (Emerald/Cyan tint)
+                grad.addColorStop(0, 'rgba(16, 185, 129, 0.14)');
+                grad.addColorStop(1, 'rgba(56, 189, 248, 0.06)');
+            } else if (state.radiusMultiplier < 0.75) {
+                // Strict Core Mode (Amber tint)
+                grad.addColorStop(0, 'rgba(245, 158, 11, 0.16)');
+                grad.addColorStop(1, 'rgba(245, 158, 11, 0.04)');
+            } else {
+                // Balanced Mode (Sky Blue tint)
+                grad.addColorStop(0, 'rgba(56, 189, 248, 0.16)');
+                grad.addColorStop(1, 'rgba(56, 189, 248, 0.04)');
+            }
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, visualRadarRadius, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = state.radiusMultiplier > 1.25 ? '#34d399' : (state.radiusMultiplier < 0.75 ? '#fbbf24' : '#38bdf8');
+            ctx.stroke();
+
+            // 3. Plot Peer Users
+            const evaluatedPeers = evaluatePeers();
+
+            evaluatedPeers.forEach(p => {
+                const angle = peerAngles[p.peer] || 0;
+                // Position peer proportionally to their vectorDistance
+                const pixelDist = Math.max(36, p.vectorDistance * maxMapRadius);
+                const px = cx + Math.cos(angle) * pixelDist;
+                const py = cy + Math.sin(angle) * pixelDist;
+
+                // Connection tether line to Toby if inside radar
+                if (p.inRadar) {
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(px, py);
+                    ctx.strokeStyle = `rgba(56, 189, 248, ${Math.min(0.75, 0.18 + p.userWeight * 0.22)})`;
+                    ctx.lineWidth = Math.max(1, p.userWeight * 1.3);
+                    ctx.stroke();
+                }
+
+                // Node radius scales with user's equalizer boost weight
+                const baseNodeR = 9;
+                const nodeR = p.userWeight === 0 ? 6 : Math.max(6, Math.min(18, baseNodeR * (0.7 + p.userWeight * 0.35)));
+
+                // Outer glow if boosted and active
+                if (p.inRadar && p.userWeight > 1.1) {
+                    ctx.beginPath();
+                    ctx.arc(px, py, nodeR + 6, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(167, 139, 250, 0.25)';
+                    ctx.fill();
+                }
+
+                // Peer Node Circle
+                ctx.beginPath();
+                ctx.arc(px, py, nodeR, 0, Math.PI * 2);
+                if (p.userWeight === 0) {
+                    ctx.fillStyle = '#1e293b';
+                    ctx.strokeStyle = '#ef4444';
+                } else if (p.inRadar) {
+                    ctx.fillStyle = peerColors[p.peer] || '#38bdf8';
+                    ctx.strokeStyle = '#ffffff';
+                } else {
+                    ctx.fillStyle = '#334155';
+                    ctx.strokeStyle = '#64748b';
+                }
+                ctx.lineWidth = p.inRadar ? 2 : 1.2;
+                ctx.fill();
+                ctx.stroke();
+
+                // Peer Label + Score Pill
+                ctx.font = p.inRadar ? '600 12px "Inter", sans-serif' : '500 11px "Inter", sans-serif';
+                ctx.fillStyle = p.inRadar ? '#f8fafc' : '#64748b';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.peer, px, py - nodeR - 6);
+
+                // Sub-label showing Pearson & Weight
+                ctx.font = '10px "JetBrains Mono", monospace';
+                ctx.fillStyle = p.userWeight === 0 ? '#f87171' : (p.inRadar ? '#94a3b8' : '#475569');
+                const tag = p.userWeight === 0 ? 'MUTED' : `r=${p.basePearson.toFixed(2)} (${p.userWeight.toFixed(1)}x)`;
+                ctx.fillText(tag, px, py + nodeR + 13);
+            });
+
+            // 4. Draw Center Target User ('Toby')
+            ctx.beginPath();
+            ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.22)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, 11, 0, Math.PI * 2);
+            ctx.fillStyle = '#0284c7';
+            ctx.strokeStyle = '#e0f2fe';
+            ctx.lineWidth = 2.5;
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px "Inter", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('TOBY', cx, cy + 24);
+        }
+
+        /**
+         * 4. UI RENDERING & STATE SYNCHRONIZATION
+         */
+        function renderPeerEqualizer() {
+            const container = document.getElementById('peerEqualizerGrid');
+            const peers = Object.keys(dataset).filter(u => u !== state.targetUser);
+
+            container.innerHTML = peers.map(peer => {
+                const basePearson = pearsonCorrelation(state.targetUser, peer);
+                const weight = state.peerWeights[peer];
+                const isMuted = weight === 0;
+                const isBoosted = weight > 1.0;
+
+                return `
+                    <div class="bg-slate-850/90 border ${isMuted ? 'border-rose-500/30 opacity-75' : (isBoosted ? 'border-purple-500/40' : 'border-slate-800')} rounded-xl p-3 transition">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${peerColors[peer]}"></span>
+                                <span class="text-xs font-semibold text-white">${peer}</span>
+                                <span class="text-[10px] font-mono text-slate-400">r=${basePearson.toFixed(2)}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span id="weight-label-${peer}" class="text-xs font-mono font-bold ${isMuted ? 'text-rose-400' : (isBoosted ? 'text-purple-400' : 'text-slate-300')}">
+                                    ${weight.toFixed(1)}x
+                                </span>
+                                <button type="button" onclick="toggleMutePeer('${peer}')" title="${isMuted ? 'Unmute Peer' : 'Mute Peer'}"
+                                    class="px-1.5 py-0.5 text-[10px] font-mono rounded ${isMuted ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'} transition">
+                                    ${isMuted ? 'MUTED' : 'MUTE'}
+                                </button>
+                            </div>
+                        </div>
+                        <input type="range" min="0" max="3.0" step="0.1" value="${weight}"
+                            oninput="updatePeerWeight('${peer}', this.value)"
+                            class="w-full peer-slider">
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderDashboard() {
+            const evaluatedPeers = evaluatePeers();
+            const recommendations = computeRecommendations(evaluatedPeers);
+            const activeCount = evaluatedPeers.filter(p => p.inRadar).length;
+
+            // Update telemetry & badges
+            document.getElementById('radiusValueDisplay').textContent = `${state.radiusMultiplier.toFixed(2)}x`;
+            document.getElementById('telemetryRadius').textContent = `${state.radiusMultiplier.toFixed(2)}x`;
+            document.getElementById('telemetryActiveCount').textContent = `${activeCount} / ${evaluatedPeers.length}`;
+
+            const modeBadge = document.getElementById('modeBadge');
+            if (state.radiusMultiplier > 1.25) {
+                modeBadge.textContent = `Explorer Mode (${state.radiusMultiplier.toFixed(2)}x)`;
+                modeBadge.className = 'px-2.5 py-0.5 text-xs font-medium rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+            } else if (state.radiusMultiplier < 0.75) {
+                modeBadge.textContent = `Strict Core (${state.radiusMultiplier.toFixed(2)}x)`;
+                modeBadge.className = 'px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30';
+            } else {
+                modeBadge.textContent = `Balanced Mode (${state.radiusMultiplier.toFixed(2)}x)`;
+                modeBadge.className = 'px-2.5 py-0.5 text-xs font-medium rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30';
+            }
+
+            // Render Recommendations List
+            const recContainer = document.getElementById('recommendationsList');
+            if (recommendations.length === 0) {
+                recContainer.innerHTML = `
+                    <div class="bg-slate-850/80 border border-dashed border-slate-700 rounded-xl p-6 text-center">
+                        <p class="text-sm font-medium text-slate-300">No peers inside current radar radius!</p>
+                        <p class="text-xs text-slate-400 mt-1">Expand the Vector Search Radius slider or unmute a peer to generate recommendations.</p>
+                    </div>
+                `;
+            } else {
+                recContainer.innerHTML = recommendations.map((rec, index) => {
+                    const scorePercent = Math.min(100, Math.round((rec.predictedScore / 5.0) * 100));
+                    const contribBadges = rec.contributors.slice(0, 3).map(c =>
+                        `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 text-[11px] text-slate-300 border border-slate-700/80">
+                            <span class="w-1.5 h-1.5 rounded-full" style="background-color:${peerColors[c.peer]}"></span>
+                            ${c.peer} (${c.rating.toFixed(1)}★)
+                        </span>`
+                    ).join('');
+
+                    return `
+                        <div class="bg-slate-850/90 border border-slate-800 hover:border-slate-700 rounded-xl p-3.5 transition">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-6 h-6 rounded-lg bg-sky-500/15 text-sky-400 font-mono text-xs font-bold flex items-center justify-center border border-sky-500/30">
+                                        #${index + 1}
+                                    </span>
+                                    <div>
+                                        <h3 class="text-sm font-semibold text-white">${rec.movie}</h3>
+                                        <div class="flex flex-wrap gap-1.5 mt-1.5">
+                                            ${contribBadges}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="text-sm font-mono font-bold text-emerald-400">${rec.predictedScore.toFixed(2)} <span class="text-[11px] text-slate-400">/ 5.0</span></div>
+                                    <div class="w-20 h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1.5 ml-auto">
+                                        <div class="h-full bg-gradient-to-r from-sky-400 to-emerald-400 rounded-full" style="width: ${scorePercent}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Render Similarity Matrix Table
+            const tbody = document.getElementById('similarityTableBody');
+            tbody.innerHTML = evaluatedPeers.map(p => {
+                const statusBadge = p.userWeight === 0
+                    ? `<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-500/15 text-rose-400 border border-rose-500/30">MUTED</span>`
+                    : (p.inRadar
+                        ? `<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">IN RANGE</span>`
+                        : `<span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-500 border border-slate-700">OUTSIDE</span>`);
+
+                return `
+                    <tr class="${p.inRadar ? 'text-slate-200' : 'text-slate-500'}">
+                        <td class="py-2.5 font-medium flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full" style="background-color: ${p.inRadar ? peerColors[p.peer] : '#475569'}"></span>
+                            ${p.peer}
+                        </td>
+                        <td class="py-2.5 text-right font-mono">${p.basePearson.toFixed(2)}</td>
+                        <td class="py-2.5 text-right font-mono">${p.userWeight.toFixed(1)}x</td>
+                        <td class="py-2.5 text-right font-mono font-semibold ${p.inRadar ? 'text-sky-400' : 'text-slate-600'}">
+                            ${p.adjustedScore.toFixed(2)}
+                        </td>
+                        <td class="py-2.5 text-right">${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Redraw Radar Canvas
+            drawRadar();
+        }
+
+        /**
+         * 5. INTERACTIVE EVENT HANDLERS
+         */
+        const radiusSlider = document.getElementById('radiusSlider');
+        radiusSlider.addEventListener('input', (e) => {
+            state.radiusMultiplier = parseFloat(e.target.value);
+            updatePresetButtonStyles();
+            renderDashboard();
+        });
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const val = parseFloat(btn.getAttribute('data-radius'));
+                state.radiusMultiplier = val;
+                radiusSlider.value = val;
+                updatePresetButtonStyles();
+                renderDashboard();
+            });
+        });
+
+        function updatePresetButtonStyles() {
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                const val = parseFloat(btn.getAttribute('data-radius'));
+                if (Math.abs(state.radiusMultiplier - val) < 0.05) {
+                    btn.className = 'preset-btn py-2 px-3 rounded-lg text-xs font-medium bg-sky-500/15 border border-sky-500/40 text-sky-200 transition flex flex-col items-center gap-0.5';
+                } else {
+                    btn.className = 'preset-btn py-2 px-3 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-750 border border-slate-700 text-slate-300 transition flex flex-col items-center gap-0.5';
+                }
+            });
+        }
+
+        window.updatePeerWeight = function(peer, val) {
+            state.peerWeights[peer] = parseFloat(val);
+            renderPeerEqualizer();
+            renderDashboard();
+        };
+
+        window.toggleMutePeer = function(peer) {
+            state.peerWeights[peer] = state.peerWeights[peer] === 0 ? 1.0 : 0.0;
+            renderPeerEqualizer();
+            renderDashboard();
+        };
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            state.radiusMultiplier = 1.0;
+            radiusSlider.value = 1.0;
+            Object.keys(state.peerWeights).forEach(peer => {
+                state.peerWeights[peer] = 1.0;
+            });
+            updatePresetButtonStyles();
+            renderPeerEqualizer();
+            renderDashboard();
+        });
+
+        // Render Toby's static baseline history tags
+        function renderTobyHistory() {
+            const container = document.getElementById('tobyHistoryTags');
+            const history = dataset[state.targetUser];
+            container.innerHTML = Object.entries(history).map(([movie, rating]) => `
+                <span class="px-2.5 py-1 rounded-md bg-slate-850 border border-slate-800 text-[11px] text-slate-300">
+                    ${movie}: <strong class="text-sky-400 font-mono">${rating.toFixed(1)}★</strong>
+                </span>
+            `).join('');
+        }
+
+        // Initialize on load
+        window.addEventListener('resize', resizeCanvas);
+        window.onload = function() {
+            renderTobyHistory();
+            renderPeerEqualizer();
+            resizeCanvas();
+            renderDashboard();
+        };
+    </script>
+</body>
+</html>
